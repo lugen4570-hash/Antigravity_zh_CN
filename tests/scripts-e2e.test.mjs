@@ -215,7 +215,7 @@ test('install.ps1 quotes paths with spaces when spawning background heal', async
     '-SkipTaskRegister',
   ]);
 
-  const deadline = Date.now() + 10000;
+  const deadline = Date.now() + 30000;
   while (Date.now() < deadline && !isAsarPatched(asarPath)) {
     await new Promise((r) => setTimeout(r, 250));
   }

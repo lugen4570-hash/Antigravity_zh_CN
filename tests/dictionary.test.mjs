@@ -110,6 +110,25 @@ test('zh-CN.json and patterns.json are valid and translate critical Antigravity 
   assert.equal(t.translate('Skills: 2,401 tokens'), '技能：2,401 tokens');
   assert.equal(t.translate('Mcp Tools: 243 tokens'), 'MCP 工具：243 tokens');
   assert.equal(t.translate('Show 21 breakdowns'), '显示 21 项明细');
+
+  // Regression: quota & credits screen + permission prompts reported from user screenshot & logs
+  assert.equal(t.translate('Weekly Limit Remaining'), '每周剩余配额');
+  assert.equal(t.translate('Five Hour Limit Remaining'), '5 小时剩余配额');
+  assert.equal(t.translate('Gemini 4 Argon Weekly Limit'), 'Gemini 4 Argon 每周配额');
+  assert.equal(
+    t.translate('You have used some of your weekly limit, it will fully refresh in 1 day, 14 hours.'),
+    '已使用部分每周配额，将在 1 天 14 小时后完全刷新。'
+  );
+  assert.equal(
+    t.translate('You have used some of your 5-hour limit, it will fully refresh in 29 minutes.'),
+    '已使用部分 5 小时配额，将在 29 分钟后完全刷新。'
+  );
+  assert.equal(
+    t.translate('Manage your model quota and credits.'),
+    '管理你的模型配额与 AI 额度。'
+  );
+  assert.equal(t.translate('Yes, allow this time'), '是的，仅本次允许');
+  assert.equal(t.translate('Version 2.31.2'), '版本 2.31.2');
 });
 
 test('scan-new-strings writes unseen UI candidates without crashing', async () => {

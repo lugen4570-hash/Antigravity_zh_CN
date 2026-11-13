@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 function shouldSkipText(trimmed) {
-  if (!trimmed || trimmed.length > 180) return true;
+  if (!trimmed || trimmed.length > 195) return true;
   if (!/[A-Za-z]/.test(trimmed)) return true;
   if (/[\u4e00-\u9fff]/.test(trimmed)) return true;
   if (/^(https?|wss?|file|plugin|agy-[a-z-]+):\/\//i.test(trimmed)) return true;
