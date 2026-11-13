@@ -1,0 +1,70 @@
+[
+  {
+    "pattern": "^No agents? running$",
+    "replace": "无代理正在运行"
+  },
+  {
+    "pattern": "^(\\d+) agents? running$",
+    "replace": "$1 个代理正在运行"
+  },
+  {
+    "pattern": "^(\\d+) files? changed$",
+    "replace": "$1 个文件已更改"
+  },
+  {
+    "pattern": "^(\\d+) files? modified$",
+    "replace": "$1 个文件已修改"
+  },
+  {
+    "pattern": "^(\\d+) tasks?$",
+    "replace": "$1 个任务"
+  },
+  {
+    "pattern": "^(\\d+) steps?$",
+    "replace": "$1 个步骤"
+  },
+  {
+    "pattern": "^Step (\\d+) of (\\d+)$",
+    "replace": "第 $1 / $2 步"
+  },
+  {
+    "pattern": "^(\\d+)s ago$",
+    "replace": "$1 秒前"
+  },
+  {
+    "pattern": "^(\\d+)m ago$",
+    "replace": "$1 分钟前"
+  },
+  {
+    "pattern": "^(\\d+)h ago$",
+    "replace": "$1 小时前"
+  },
+  {
+    "pattern": "^(\\d+)d ago$",
+    "replace": "$1 天前"
+  },
+  {
+    "pattern": "^Updated (\\d+)m ago$",
+    "replace": "$1 分钟前更新"
+  },
+  {
+    "pattern": "^Updated (\\d+)h ago$",
+    "replace": "$1 小时前更新"
+  },
+  {
+    "pattern": "^Just now$",
+    "replace": "刚刚"
+  },
+  {
+    "pattern": "^(\\d+) results?$",
+    "replace": "$1 条结果"
+  },
+  {
+    "pattern": "^(\\d+) selected$",
+    "replace": "已选择 $1 项"
+  },
+  {
+    "pattern": "^(\\d+) active$",
+    "replace": "$1 个运行中"
+  }
+]

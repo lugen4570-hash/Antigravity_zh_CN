@@ -17,6 +17,8 @@ const DEFAULT_IGNORED_SELECTOR = [
   '.cm-editor',
   '.xterm',
   '.prose',
+  '.notebook-code-input',
+  '.notebook-code-outputs',
   '[data-message-author-role]',
   '[data-testid="message-content"]',
 ].join(', ');
