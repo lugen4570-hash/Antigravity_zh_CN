@@ -4,12 +4,13 @@ import zlib from 'node:zlib';
 import { pathToFileURL } from 'node:url';
 import { readAsar } from '../patcher/asar-patch.mjs';
 
-const ASAR_TEXT_RE = /['"`]([A-Z][A-Za-z0-9 ,.&'()\/:?!+-]{2,80})['"`]/g;
-const JSX_PROP_RE = /(?:children|label|title|placeholder|aria-label|description|tooltip|heading|text|emptyText|buttonText)\s*:\s*["']([A-Z][A-Za-z0-9 ,.&'()\/:?!+\-\u2026]{1,80})["']/g;
-const QUOTED_UI_RE = /["']([A-Z][a-z]+(?: [A-Za-z0-9()&/'-]{1,24}){0,7}[.?!\u2026]?)["']/g;
+const ASAR_TEXT_RE = /['"`]([A-Z][A-Za-z0-9 ,.&'()\/:?!+\-@%]{2,180})['"`]/g;
+const JSX_PROP_RE = /(?:children|label|title|subtitle|placeholder|aria-label|description|tooltip|heading|text|emptyText|buttonText|shortDescription|longDescription|displayName|confirmLabel|cancelLabel|submitLabel)\s*:\s*["']([A-Z][A-Za-z0-9 ,.&'()\/:?!+\-\u2026@%]{1,180})["']/g;
+const JSX_CHILD_RE = /\.createElement\([^,]+,(?:null|\{[^}]{0,350}\}),["']([A-Z][A-Za-z0-9 ,.&'()\/:?!+\-\u2026@%]{1,180})["']/g;
+const QUOTED_UI_RE = /["']([A-Z][a-z]+(?: [A-Za-z0-9,&'()\/+\-%@]{1,28}){0,18}[.?!\u2026:]?)["']/g;
 
 function looksLikeUiLabel(str) {
-  if (!str || str.length < 2 || str.length > 80) return false;
+  if (!str || str.length < 2 || str.length > 180) return false;
   if (/^[A-Z0-9_]+$/.test(str)) return false;
   if (/^[A-Z][a-z]+[A-Z][A-Za-z0-9]*$/.test(str)) return false;
   if (/^(https?|wss?|file|node_modules|application\/|text\/|image\/)/i.test(str)) return false;
@@ -86,7 +87,7 @@ export function extractFromLanguageServer(lsPath) {
   if (!mainJsBuf) return [];
   const text = mainJsBuf.toString('utf8');
 
-  for (const re of [JSX_PROP_RE, QUOTED_UI_RE]) {
+  for (const re of [JSX_PROP_RE, JSX_CHILD_RE, QUOTED_UI_RE]) {
     re.lastIndex = 0;
     let m;
     while ((m = re.exec(text)) !== null) {

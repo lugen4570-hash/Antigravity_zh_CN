@@ -14,6 +14,13 @@ function createMockDom() {
       this.parentNode = null;
       this.parentElement = null;
     }
+    get nextSibling() {
+      if (!this.parentNode || !Array.isArray(this.parentNode.childNodes)) return null;
+      const idx = this.parentNode.childNodes.indexOf(this);
+      return idx >= 0 && idx + 1 < this.parentNode.childNodes.length
+        ? this.parentNode.childNodes[idx + 1]
+        : null;
+    }
   }
 
   class MockText extends MockNode {
@@ -305,4 +312,61 @@ test('buildInjectionScript executes cleanly in isolated VM context and is idempo
   // Running twice does not crash or re-install
   vm.runInNewContext(script, sandbox);
   assert.equal(txt.nodeValue, '设置');
+});
+
+test('disambiguates inline "Type" before <code>/<kbd> while keeping standalone "Type" and sibling <p> placeholder working', () => {
+  const { MockText, MockElement, doc, win } = createMockDom();
+
+  const inlineWrap = new MockElement('span');
+  const typeLead = new MockText('Type ');
+  const slashCode = new MockElement('code');
+  slashCode.appendChild(new MockText('/'));
+  const middleTxt = new MockText(' and select ');
+  const planCode = new MockElement('code');
+  planCode.appendChild(new MockText('plan'));
+  const tailTxt = new MockText(' to have the agent generate a plan.');
+  inlineWrap.appendChild(typeLead);
+  inlineWrap.appendChild(slashCode);
+  inlineWrap.appendChild(middleTxt);
+  inlineWrap.appendChild(planCode);
+  inlineWrap.appendChild(tailTxt);
+
+  const labelCell = new MockElement('span');
+  const typeLabel = new MockText('Type');
+  labelCell.appendChild(typeLabel);
+
+  const composerWrap = new MockElement('div', { class: 'relative w-full' });
+  const placeholderP = new MockElement('p', { class: 'pointer-events-none' });
+  const placeholderTxt = new MockText('Ask anything, @ to mention, / for actions');
+  placeholderP.appendChild(placeholderTxt);
+  const editorDiv = new MockElement('div', { contenteditable: 'true' });
+  const userDraft = new MockText('and select');
+  editorDiv.appendChild(userDraft);
+  composerWrap.appendChild(placeholderP);
+  composerWrap.appendChild(editorDiv);
+
+  doc.body.appendChild(inlineWrap);
+  doc.body.appendChild(labelCell);
+  doc.body.appendChild(composerWrap);
+
+  const translator = createTranslator({
+    exactMap: {
+      Type: '类型',
+      'and select': '并选择',
+      'to have the agent generate a plan.': '即可让代理生成计划。',
+      'Ask anything, @ to mention, / for actions': '随意提问，输入 @ 引用内容，输入 / 调用操作',
+    },
+    patterns: [],
+  });
+  const domTranslator = createDomTranslator(doc, win, translator);
+  domTranslator.scan(doc.body);
+
+  assert.equal(typeLead.nodeValue, '输入 ');
+  assert.equal(middleTxt.nodeValue, ' 并选择 ');
+  assert.equal(tailTxt.nodeValue, ' 即可让代理生成计划。');
+  assert.equal(slashCode.childNodes[0].nodeValue, '/');
+  assert.equal(planCode.childNodes[0].nodeValue, 'plan');
+  assert.equal(typeLabel.nodeValue, '类型');
+  assert.equal(placeholderTxt.nodeValue, '随意提问，输入 @ 引用内容，输入 / 调用操作');
+  assert.equal(userDraft.nodeValue, 'and select');
 });

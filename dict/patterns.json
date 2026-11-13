@@ -66,5 +66,109 @@
   {
     "pattern": "^(\\d+) active$",
     "replace": "$1 个运行中"
+  },
+  {
+    "pattern": "^Turn (\\d+) of (\\d+)$",
+    "replace": "第 $1 / $2 轮"
+  },
+  {
+    "pattern": "^Load older messages, showing (\\d+) of (\\d+)$",
+    "replace": "加载更早消息（当前显示 $1 / $2）"
+  },
+  {
+    "pattern": "^Select project, current: (.+)$",
+    "replace": "选择项目，当前：$1"
+  },
+  {
+    "pattern": "^Select model, current: (.+)$",
+    "replace": "选择模型，当前：$1"
+  },
+  {
+    "pattern": "^Agent permissions preset selector, current: (.+)$",
+    "replace": "代理权限预设选择器，当前：$1"
+  },
+  {
+    "pattern": "^Rules: ([\\d,]+) tokens$",
+    "replace": "规则：$1 tokens"
+  },
+  {
+    "pattern": "^Skills: ([\\d,]+) tokens$",
+    "replace": "技能：$1 tokens"
+  },
+  {
+    "pattern": "^Mcp Tools: ([\\d,]+) tokens$",
+    "replace": "MCP 工具：$1 tokens"
+  },
+  {
+    "pattern": "^Show (\\d+) breakdowns?$",
+    "replace": "显示 $1 项明细"
+  },
+  {
+    "pattern": "^Worked for (\\d+[smhd](?: \\d+[smhd])*)$",
+    "replace": "已工作 $1"
+  },
+  {
+    "pattern": "^Open Subagent: (.+)$",
+    "replace": "打开子代理：$1"
+  },
+  {
+    "pattern": "^Send feedback as (.+)$",
+    "replace": "以 $1 的身份发送反馈"
+  },
+  {
+    "pattern": "^Shortcut (.+?) for (.+)$",
+    "replace": "「$2」的快捷键：$1"
+  },
+  {
+    "pattern": "^Remove shortcut (.+?) for (.+)$",
+    "replace": "移除「$2」的快捷键：$1"
+  },
+  {
+    "pattern": "^Add shortcut for (.+)$",
+    "replace": "添加「$1」的快捷键"
+  },
+  {
+    "pattern": "^Hey ([^,]+), what should we build today\\?$",
+    "replace": "嗨，$1，今天要一起构建什么？"
+  },
+  {
+    "pattern": "^Welcome back, ([^.]+)\\. Where should we pick up\\?$",
+    "replace": "欢迎回来，$1。我们要从哪里继续？"
+  },
+  {
+    "pattern": "^Good to see you, ([^.]+)\\. What's next\\?$",
+    "replace": "很高兴见到你，$1。接下来做什么？"
+  },
+  {
+    "pattern": "^Toggle ([A-Z][A-Za-z0-9 ._-]{1,40})$",
+    "replace": "切换 $1"
+  },
+  {
+    "pattern": "^Install ([A-Z][A-Za-z0-9 ._-]{1,40})$",
+    "replace": "安装 $1"
+  },
+  {
+    "pattern": "^Add ([A-Z][A-Za-z0-9 ._-]{1,40})$",
+    "replace": "添加 $1"
+  },
+  {
+    "pattern": "^Details for ([A-Z][A-Za-z0-9 ._-]{1,40})$",
+    "replace": "$1 详情"
+  },
+  {
+    "pattern": "^See more in ([A-Z][A-Za-z0-9 &,.-]{1,40})$",
+    "replace": "在「$1」中查看更多"
+  },
+  {
+    "pattern": "^See (\\d+) more$",
+    "replace": "查看更多（还有 $1 项）"
+  },
+  {
+    "pattern": "^Start Best-of-(\\d+)$",
+    "replace": "启动 Best-of-$1"
+  },
+  {
+    "pattern": "^(\\d+)%$",
+    "replace": "$1%"
   }
 ]

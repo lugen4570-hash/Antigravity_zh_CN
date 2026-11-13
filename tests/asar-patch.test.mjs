@@ -165,7 +165,12 @@ test('patchAsar works cleanly on copied real Antigravity app.asar without alteri
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'asar-real-'));
   const copyPath = path.join(tmpDir, 'app.asar');
-  fs.copyFileSync(realAsar, copyPath);
+  const realBak = `${realAsar}.zh-cn.bak`;
+  const sourceAsar = isAsarPatched(realAsar) && fs.existsSync(realBak) ? realBak : realAsar;
+  fs.copyFileSync(sourceAsar, copyPath);
+  if (isAsarPatched(copyPath)) {
+    unpatchAsar(copyPath);
+  }
 
   const before = readAsar(copyPath);
   const menuHashBefore = sha256(before.files.get('dist/menu.js'));

@@ -27,7 +27,7 @@ const DEFAULT_IGNORED_SELECTOR = [
 ].join(', ');
 
 const UI_COLLECT_SELECTOR = 'button, label, h1, h2, h3, h4, h5, h6, [role="menuitem"], [role="tab"], [role="option"], [role="dialog"] header, nav, aside, summary';
-const TRANSLATABLE_ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
+const TRANSLATABLE_ATTRS = ['placeholder', 'title', 'aria-label', 'alt', 'data-placeholder'];
 
 function createDomTranslator(doc, win, translator, options = {}) {
   const ignoredSelector = options.ignoredSelector || DEFAULT_IGNORED_SELECTOR;
@@ -63,6 +63,14 @@ function createDomTranslator(doc, win, translator, options = {}) {
     }
   }
 
+  function hasInlineCodeSibling(node) {
+    let sib = node.nextSibling;
+    while (sib && sib.nodeType === TEXT_NODE && typeof sib.nodeValue === 'string' && !sib.nodeValue.trim()) {
+      sib = sib.nextSibling;
+    }
+    return Boolean(sib && sib.nodeType === ELEMENT_NODE && (sib.tagName === 'CODE' || sib.tagName === 'KBD'));
+  }
+
   function translateTextNode(node) {
     if (!node || node.nodeType !== TEXT_NODE) return;
     const parent = node.parentElement || node.parentNode;
@@ -74,8 +82,18 @@ function createDomTranslator(doc, win, translator, options = {}) {
     const prev = textState.get(node);
     if (prev && current === prev.zh) return;
 
-    const collect = isCollectibleUiElement(parent);
-    const next = translator.translate(current, { collect });
+    const match = current.match(/^(\s*)([\s\S]*?)(\s*)$/);
+    const leading = match ? match[1] : '';
+    const core = match ? match[2] : current;
+    const trailing = match ? match[3] : '';
+
+    let next;
+    if (core === 'Type' && hasInlineCodeSibling(node)) {
+      next = `${leading}输入${trailing}`;
+    } else {
+      const collect = isCollectibleUiElement(parent);
+      next = translator.translate(current, { collect });
+    }
     if (next !== current) {
       textState.set(node, { raw: current, zh: next });
       node.nodeValue = next;
