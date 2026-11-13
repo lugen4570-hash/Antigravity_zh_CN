@@ -62,7 +62,13 @@ function createMockDom() {
           } else {
             const k = inner.slice(0, eqIdx).trim();
             const v = inner.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
-            if (this.getAttribute(k) === v) return true;
+            if (k.endsWith('*')) {
+              const attrName = k.slice(0, -1);
+              const val = this.getAttribute(attrName);
+              if (typeof val === 'string' && val.includes(v)) return true;
+            } else if (this.getAttribute(k) === v) {
+              return true;
+            }
           }
         } else if (this.tagName === sel.toUpperCase()) {
           return true;
@@ -97,12 +103,22 @@ function createMockDom() {
   const doc = {
     body,
     documentElement: body,
-    createTreeWalker(root, whatToShow) {
+    createTreeWalker(root, whatToShow, filter) {
       const flat = [];
+      const FILTER_ACCEPT = 1;
+      const FILTER_REJECT = 2;
+      const FILTER_SKIP = 3;
       function walk(node) {
         for (const c of node.childNodes || []) {
-          if (whatToShow === 4 && c.nodeType === 3) flat.push(c);
-          else if (whatToShow === 1 && c.nodeType === 1) flat.push(c);
+          const matchesMask =
+            (c.nodeType === 1 && (whatToShow & 1)) ||
+            (c.nodeType === 3 && (whatToShow & 4));
+          let decision = matchesMask ? FILTER_ACCEPT : FILTER_SKIP;
+          if (matchesMask && filter && typeof filter.acceptNode === 'function') {
+            decision = filter.acceptNode(c);
+          }
+          if (decision === FILTER_REJECT) continue;
+          if (decision === FILTER_ACCEPT) flat.push(c);
           walk(c);
         }
       }
@@ -119,7 +135,13 @@ function createMockDom() {
 
   const win = {
     Node: { TEXT_NODE: 3, ELEMENT_NODE: 1 },
-    NodeFilter: { SHOW_TEXT: 4, SHOW_ELEMENT: 1 },
+    NodeFilter: {
+      SHOW_TEXT: 4,
+      SHOW_ELEMENT: 1,
+      FILTER_ACCEPT: 1,
+      FILTER_REJECT: 2,
+      FILTER_SKIP: 3,
+    },
     MutationObserver: MockMutationObserver,
     requestAnimationFrame: (fn) => fn(),
     setTimeout,
@@ -180,6 +202,9 @@ test('skips code blocks, editors, terminal, inputs, and chat prose containers', 
     new MockElement('div', { contenteditable: 'true' }),
     new MockElement('div', { 'data-message-author-role': 'assistant' }),
     new MockElement('div', { class: 'prose' }),
+    new MockElement('div', { class: 'agy-user-bubble' }),
+    new MockElement('div', { 'data-testid': 'user-message-content' }),
+    new MockElement('div', { 'data-testid': 'user-message-bubble' }),
   ];
 
   const nodes = containers.map((el) => {
@@ -191,13 +216,21 @@ test('skips code blocks, editors, terminal, inputs, and chat prose containers', 
     return t;
   });
 
-  const translator = createTranslator({ exactMap: { Settings: '设置' }, patterns: [] });
-  const domTranslator = createDomTranslator(doc, win, translator);
+  let translateCalls = 0;
+  const baseTranslator = createTranslator({ exactMap: { Settings: '设置' }, patterns: [] });
+  const countingTranslator = {
+    translate(text, opts) {
+      translateCalls += 1;
+      return baseTranslator.translate(text, opts);
+    },
+  };
+  const domTranslator = createDomTranslator(doc, win, countingTranslator);
   domTranslator.scan(doc.body);
 
   for (const t of nodes) {
     assert.equal(t.nodeValue, 'Settings');
   }
+  assert.equal(translateCalls, 0, 'Ignored subtrees must be pruned before translate() is called');
 });
 
 test('translates allowed UI attributes while leaving text input values untouched', () => {

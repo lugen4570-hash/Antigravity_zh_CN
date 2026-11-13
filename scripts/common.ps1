@@ -16,11 +16,14 @@ function Write-I18nLog {
 }
 
 function Enter-I18nMutex {
-  param([string]$Name = "Local\AntigravityI18nHeal")
+  param(
+    [string]$Name = "Local\AntigravityI18nHeal",
+    [int]$TimeoutMs = 0
+  )
   $createdNew = $false
   $mutex = New-Object System.Threading.Mutex($false, $Name, [ref]$createdNew)
   try {
-    $acquired = $mutex.WaitOne(0, $false)
+    $acquired = $mutex.WaitOne($TimeoutMs, $false)
   } catch [System.Threading.AbandonedMutexException] {
     $acquired = $true
   }

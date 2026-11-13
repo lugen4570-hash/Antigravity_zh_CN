@@ -34,8 +34,15 @@ try {
     if ($NoWait) {
       exit 0
     }
+    # Release mutex while waiting so repatch-after-update.ps1 can take over if an update runs
+    Exit-I18nMutex -Mutex $mutex
+    $mutex = $null
     while ((Test-FileLocked -Path $AsarPath) -or (Test-TargetRunning -ProcessName $ProcessName)) {
       Start-Sleep -Seconds 2
+    }
+    $mutex = Enter-I18nMutex -TimeoutMs 10000
+    if ($null -eq $mutex) {
+      exit 0
     }
   }
 

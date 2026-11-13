@@ -13,9 +13,10 @@ param(
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\common.ps1"
 
-$mutex = Enter-I18nMutex
+$mutex = Enter-I18nMutex -TimeoutMs ($MaxWaitSeconds * 1000)
 if ($null -eq $mutex) {
-  exit 0
+  Write-I18nLog -BaseDir $BaseDir -Message "Timed out waiting for i18n mutex."
+  exit 1
 }
 
 try {

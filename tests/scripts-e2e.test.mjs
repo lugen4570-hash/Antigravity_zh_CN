@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { isAsarPatched, readAsar, writeAsar } from '../patcher/asar-patch.mjs';
 
 function makeTempAsar(dir, mainJs = '"use strict";\nconsole.log("ok");\n') {
@@ -153,5 +153,72 @@ test('self-heal.ps1 skips fast when patched and heals when unpatched', () => {
   ]);
   assert.equal(isAsarPatched(asarPath), true);
 
+  fs.rmSync(tmpRoot, { recursive: true, force: true });
+});
+
+test('repatch-after-update.ps1 waits for mutex released by another process instead of aborting', async () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n mutex space-'));
+  const fakeHome = path.join(tmpRoot, 'home i18n');
+  const fakeRes = path.join(tmpRoot, 'res dir');
+  fs.mkdirSync(path.join(fakeRes, 'bin'), { recursive: true });
+  const asarPath = makeTempAsar(fakeRes);
+
+  // Also tests paths with spaces in install.ps1
+  runPs(path.resolve('scripts/install.ps1'), [
+    '-SourceDir', path.resolve('.'),
+    '-BaseDir', fakeHome,
+    '-AsarPath', asarPath,
+    '-ProcessName', 'NonExistentTestProcessNameXYZ',
+    '-SkipTaskRegister',
+    '-SkipPatch',
+  ]);
+
+  // Hold Local\AntigravityI18nHeal mutex for 1.5s in a background PowerShell process
+  const holder = spawn('powershell.exe', [
+    '-NoProfile',
+    '-Command',
+    "$m = New-Object System.Threading.Mutex($false, 'Local\\AntigravityI18nHeal'); $null = $m.WaitOne(5000); Start-Sleep -Milliseconds 1500; $m.ReleaseMutex(); $m.Dispose()",
+  ], { stdio: 'ignore' });
+
+  // Wait briefly so holder acquires mutex first
+  await new Promise((r) => setTimeout(r, 400));
+
+  runPs(path.join(fakeHome, 'scripts', 'repatch-after-update.ps1'), [
+    '-OldPid', '0',
+    '-AsarPath', asarPath,
+    '-ExePath', 'C:\\NonExistent\\Antigravity.exe',
+    '-OldHash', 'different-old-hash',
+    '-Relaunch', '0',
+    '-BaseDir', fakeHome,
+    '-ProcessName', 'NonExistentTestProcessNameXYZ',
+    '-SkipRelaunch',
+    '-MaxWaitSeconds', '10',
+  ]);
+
+  await new Promise((r) => holder.on('exit', r));
+  assert.equal(isAsarPatched(asarPath), true);
+  fs.rmSync(tmpRoot, { recursive: true, force: true });
+});
+
+test('install.ps1 quotes paths with spaces when spawning background heal', async () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n space spawn-'));
+  const fakeHome = path.join(tmpRoot, 'home with spaces');
+  const fakeRes = path.join(tmpRoot, 'res with spaces');
+  fs.mkdirSync(path.join(fakeRes, 'bin'), { recursive: true });
+  const asarPath = makeTempAsar(fakeRes);
+
+  runPs(path.resolve('scripts/install.ps1'), [
+    '-SourceDir', path.resolve('.'),
+    '-BaseDir', fakeHome,
+    '-AsarPath', asarPath,
+    '-ProcessName', 'NonExistentTestProcessNameXYZ',
+    '-SkipTaskRegister',
+  ]);
+
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline && !isAsarPatched(asarPath)) {
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  assert.equal(isAsarPatched(asarPath), true);
   fs.rmSync(tmpRoot, { recursive: true, force: true });
 });

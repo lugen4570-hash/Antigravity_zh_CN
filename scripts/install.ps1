@@ -96,12 +96,19 @@ if (-not $SkipTaskRegister) {
 
 if (-not $SkipPatch -and (Test-Path $AsarPath)) {
   $healScript = Join-Path $BaseDir "scripts\self-heal.ps1"
-  $healArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $healScript, "-BaseDir", $BaseDir, "-AsarPath", $AsarPath, "-ProcessName", $ProcessName)
   if ($NoWait) {
-    $healArgs += "-NoWait"
-    & powershell.exe @healArgs
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $healScript -BaseDir $BaseDir -AsarPath $AsarPath -ProcessName $ProcessName -NoWait
   } else {
-    Start-Process -FilePath "powershell.exe" -ArgumentList (@("-WindowStyle", "Hidden") + $healArgs) | Out-Null
+    $spawnArgs = @(
+      "-WindowStyle", "Hidden",
+      "-NoProfile",
+      "-ExecutionPolicy", "Bypass",
+      "-File", "`"$healScript`"",
+      "-BaseDir", "`"$BaseDir`"",
+      "-AsarPath", "`"$AsarPath`"",
+      "-ProcessName", "`"$ProcessName`""
+    )
+    Start-Process -FilePath "powershell.exe" -ArgumentList $spawnArgs | Out-Null
   }
 }
 

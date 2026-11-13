@@ -19,8 +19,11 @@ const DEFAULT_IGNORED_SELECTOR = [
   '.prose',
   '.notebook-code-input',
   '.notebook-code-outputs',
+  '.markdown-frontmatter',
+  '.agy-user-bubble',
   '[data-message-author-role]',
-  '[data-testid="message-content"]',
+  '[data-testid*="user-message"]',
+  '[data-testid*="message-content"]',
 ].join(', ');
 
 const UI_COLLECT_SELECTOR = 'button, label, h1, h2, h3, h4, h5, h6, [role="menuitem"], [role="tab"], [role="option"], [role="dialog"] header, nav, aside, summary';
@@ -34,6 +37,9 @@ function createDomTranslator(doc, win, translator, options = {}) {
   const ELEMENT_NODE = (win.Node && win.Node.ELEMENT_NODE) || 1;
   const SHOW_TEXT = (win.NodeFilter && win.NodeFilter.SHOW_TEXT) || 4;
   const SHOW_ELEMENT = (win.NodeFilter && win.NodeFilter.SHOW_ELEMENT) || 1;
+  const FILTER_ACCEPT = (win.NodeFilter && win.NodeFilter.FILTER_ACCEPT) || 1;
+  const FILTER_REJECT = (win.NodeFilter && win.NodeFilter.FILTER_REJECT) || 2;
+  const FILTER_SKIP = (win.NodeFilter && win.NodeFilter.FILTER_SKIP) || 3;
 
   let observer = null;
   let scheduled = false;
@@ -118,16 +124,22 @@ function createDomTranslator(doc, win, translator, options = {}) {
       translateElementAttrs(target);
     }
 
-    const textWalker = doc.createTreeWalker(target, SHOW_TEXT);
+    const walker = doc.createTreeWalker(target, SHOW_ELEMENT | SHOW_TEXT, {
+      acceptNode(node) {
+        if (node.nodeType === ELEMENT_NODE) {
+          if (isIgnoredElement(node)) return FILTER_REJECT;
+          translateElementAttrs(node);
+          return FILTER_SKIP;
+        }
+        if (node.nodeType === TEXT_NODE) {
+          return FILTER_ACCEPT;
+        }
+        return FILTER_SKIP;
+      },
+    });
     let tNode;
-    while ((tNode = textWalker.nextNode())) {
+    while ((tNode = walker.nextNode())) {
       translateTextNode(tNode);
-    }
-
-    const elWalker = doc.createTreeWalker(target, SHOW_ELEMENT);
-    let elNode;
-    while ((elNode = elWalker.nextNode())) {
-      translateElementAttrs(elNode);
     }
   }
 

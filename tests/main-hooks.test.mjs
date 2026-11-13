@@ -37,6 +37,9 @@ function createMockElectron() {
     insert(pos, item) {
       this.items.splice(pos, 0, item);
     }
+    popup(opts) {
+      this._lastPopup = opts;
+    }
     getMenuItemById(id) {
       for (const item of this.items) {
         if (item.id === id) return item;
@@ -205,6 +208,23 @@ test('menuHook translates dynamic Tray context menu labels', () => {
 
   assert.equal(trayMenu.items[0].label, '2 个代理正在运行');
   assert.equal(trayMenu.items[1].label, '退出');
+});
+
+test('menuHook translates Menu.prototype.popup context menus', () => {
+  const electron = createMockElectron();
+  const translator = createTranslator({
+    exactMap: { 'Copy Message': '复制消息', Delete: '删除' },
+    patterns: [],
+  });
+  installMenuHooks(electron, translator);
+
+  const ctxMenu = electron.Menu.buildFromTemplate([
+    { label: 'Copy Message' },
+    { label: 'Delete' },
+  ]);
+  ctxMenu.popup({});
+  assert.equal(ctxMenu.items[0].label, '复制消息');
+  assert.equal(ctxMenu.items[1].label, '删除');
 });
 
 test('updaterHook intercepts install, forces silent non-force-run, and spawns repatch bridge', () => {

@@ -162,6 +162,14 @@ function installMenuHooks(electron, translator) {
       };
     }
 
+    if (Menu.prototype && typeof Menu.prototype.popup === 'function') {
+      const origPopup = Menu.prototype.popup;
+      Menu.prototype.popup = function wrappedPopup(options) {
+        translateMenu(this, translator);
+        return origPopup.call(this, options);
+      };
+    }
+
     const existingAppMenu = typeof Menu.getApplicationMenu === 'function' ? Menu.getApplicationMenu() : null;
     if (existingAppMenu) {
       translateMenu(existingAppMenu, translator);
