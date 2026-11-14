@@ -6,12 +6,35 @@ const crypto = require('crypto');
 const Module = require('module');
 const { spawn } = require('child_process');
 
+function getRawFs() {
+  try {
+    return require('original-fs');
+  } catch {
+    return fs;
+  }
+}
+
 function sha256File(filePath) {
   try {
-    if (!filePath || !fs.existsSync(filePath)) return '';
-    return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+    const rawFs = getRawFs();
+    if (!filePath || !rawFs.existsSync(filePath)) return '';
+    return crypto.createHash('sha256').update(rawFs.readFileSync(filePath)).digest('hex');
   } catch {
     return '';
+  }
+}
+
+function appendHookLog(baseDir, message) {
+  if (!baseDir) return;
+  try {
+    const logDir = path.join(baseDir, 'logs');
+    fs.mkdirSync(logDir, { recursive: true });
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    fs.appendFileSync(path.join(logDir, 'i18n.log'), `[${ts}] ${message}\r\n`, 'utf8');
+  } catch {
+    // Logging failures must never break updater flow
   }
 }
 
@@ -26,17 +49,21 @@ function patchBaseUpdaterClass(BaseUpdater, options) {
   const exePath = options.exePath || process.execPath;
   const logger = options.logger || console;
 
-  let bridgeSpawned = false;
-
   BaseUpdater.prototype.install = function wrappedInstall(isSilent = false, isForceRunAfter = false) {
-    const shouldRelaunch = Boolean(isForceRunAfter || !isSilent || this.autoRunAppAfterInstall);
+    const shouldRelaunch = Boolean(isForceRunAfter || !isSilent);
 
-    if (!bridgeSpawned && process.platform === 'win32') {
+    if (!this.__agyBridgeSpawned && process.platform === 'win32') {
       const scriptPath = path.join(baseDir, 'scripts', 'repatch-after-update.ps1');
       if (fs.existsSync(scriptPath) || options.spawnFn) {
-        bridgeSpawned = true;
+        this.__agyBridgeSpawned = true;
         const oldHash = sha256File(asarPath);
+        const psExe = process.env.SystemRoot
+          ? path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+          : 'powershell.exe';
         const args = [
+          '/d',
+          '/c',
+          psExe,
           '-NoProfile',
           '-ExecutionPolicy',
           'Bypass',
@@ -51,20 +78,27 @@ function patchBaseUpdaterClass(BaseUpdater, options) {
           '-ExePath',
           exePath,
           '-OldHash',
-          oldHash,
+          oldHash || 'unknown',
           '-Relaunch',
           shouldRelaunch ? '1' : '0',
         ];
         try {
-          const child = spawnFn('powershell.exe', args, {
+          appendHookLog(baseDir, `Updater hook triggered (Pid=${process.pid}, Relaunch=${shouldRelaunch ? 1 : 0}).`);
+          const child = spawnFn(process.env.ComSpec || 'cmd.exe', args, {
             detached: true,
             stdio: 'ignore',
             windowsHide: true,
           });
+          if (child && typeof child.on === 'function') {
+            child.on('error', (err) => {
+              appendHookLog(baseDir, `Repatch bridge spawn error: ${err && err.message ? err.message : err}`);
+            });
+          }
           if (child && typeof child.unref === 'function') {
             child.unref();
           }
         } catch (err) {
+          appendHookLog(baseDir, `Failed to spawn repatch bridge: ${err && err.message ? err.message : err}`);
           logger.error('[antigravity-i18n] Failed to spawn repatch bridge:', err);
         }
       }

@@ -7,7 +7,7 @@ param(
   [string]$BaseDir = (Join-Path $env:USERPROFILE ".antigravity-i18n"),
   [string]$ProcessName = "Antigravity",
   [switch]$SkipRelaunch,
-  [int]$MaxWaitSeconds = 90
+  [int]$MaxWaitSeconds = 300
 )
 
 $ErrorActionPreference = "Stop"

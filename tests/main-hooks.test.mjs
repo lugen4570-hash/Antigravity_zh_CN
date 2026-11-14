@@ -262,10 +262,19 @@ test('updaterHook intercepts install, forces silent non-force-run, and spawns re
   assert.equal(ok, true);
   assert.deepEqual(installCalls, [{ isSilent: true, isForceRunAfter: false }]);
   assert.equal(spawns.length, 1);
-  assert.match(spawns[0].cmd, /powershell/i);
-  assert.ok(spawns[0].args.includes('-Relaunch'));
-  assert.ok(spawns[0].args.includes('1'));
+  assert.match(spawns[0].cmd, /cmd\.exe/i);
+  assert.ok(spawns[0].args.some((a) => /powershell\.exe/i.test(a)));
+  const relaunchIdx = spawns[0].args.indexOf('-Relaunch');
+  assert.ok(relaunchIdx >= 0);
+  assert.equal(spawns[0].args[relaunchIdx + 1], '1');
   assert.equal(spawns[0].opts.detached, true);
+
+  // Silent auto-install on manual quit does not force relaunch
+  const updater2 = new MockBaseUpdater();
+  updater2.install(true, false);
+  assert.equal(spawns.length, 2);
+  const relaunchIdx2 = spawns[1].args.indexOf('-Relaunch');
+  assert.equal(spawns[1].args[relaunchIdx2 + 1], '0');
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
@@ -313,4 +322,40 @@ test('loader skips webview guest contents and injects only Antigravity UI window
   assert.equal(executed.length, 1);
   assert.equal(executed[0].url, 'https://127.0.0.1:54321/');
   fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test('updaterHook real detached cmd->powershell spawn executes script even with spaces', { skip: process.platform !== 'win32' }, async () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'updater spawn '));
+  const baseDir = path.join(tmpRoot, 'base dir');
+  fs.mkdirSync(path.join(baseDir, 'scripts'), { recursive: true });
+  const flag = path.join(tmpRoot, 'done flag.txt');
+  fs.writeFileSync(
+    path.join(baseDir, 'scripts', 'repatch-after-update.ps1'),
+    `param([int]$OldPid,[string]$AsarPath,[string]$ExePath,[string]$OldHash,[string]$Relaunch)\nSet-Content -Path '${flag}' -Value "$OldPid|$OldHash|$Relaunch"\n`
+  );
+  const fakeAsar = path.join(tmpRoot, 'res dir', 'app.asar');
+  fs.mkdirSync(path.dirname(fakeAsar), { recursive: true });
+  fs.writeFileSync(fakeAsar, 'asar-payload');
+
+  class RealSpawnUpdater {
+    install() { return true; }
+    quitAndInstall() { return this.install(false, true); }
+  }
+
+  installUpdaterHooks({
+    BaseUpdater: RealSpawnUpdater,
+    baseDir,
+    asarPath: fakeAsar,
+    exePath: path.join(tmpRoot, 'app dir', 'Antigravity.exe'),
+  });
+
+  new RealSpawnUpdater().quitAndInstall();
+
+  const deadline = Date.now() + 25000;
+  while (Date.now() < deadline && !fs.existsSync(flag)) {
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  assert.equal(fs.existsSync(flag), true);
+  assert.match(fs.readFileSync(flag, 'utf8'), /^\d+\|[a-f0-9]{64}\|1/);
+  fs.rmSync(tmpRoot, { recursive: true, force: true });
 });
