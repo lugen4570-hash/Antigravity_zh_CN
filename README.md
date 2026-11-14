@@ -4,10 +4,12 @@
 
 ## 安装与激活
 
-在 PowerShell 中执行：
+克隆仓库后在项目根目录的 PowerShell 中执行：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\27200\.gemini\antigravity\scratch\antigravity-zh-cn\scripts\install.ps1"
+git clone https://github.com/JUN-Genyan/Antigravity_zh_CN.git
+cd Antigravity_zh_CN
+powershell -NoProfile -ExecutionPolicy Bypass -File ".\scripts\install.ps1"
 ```
 
 - 脚本会将运行时与词典部署到 `%USERPROFILE%\.antigravity-i18n\`（脱离 Antigravity 安装目录，更新不会被删），并注册当前用户权限的自愈计划任务 `AntigravityI18nSelfHeal`（登录时 + 解锁屏幕时 + 每 30 分钟极速巡检）。
