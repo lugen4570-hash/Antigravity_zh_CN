@@ -1103,5 +1103,10 @@
   "1 task running": "1 个任务正在运行",
   "Explored files, ran commands, edited files": "已检索文件、执行命令并修改文件",
   "Ran in the sandbox": "已在沙盒中运行",
-  "To modify notification settings, open your operating system's system preferences.": "要修改通知设置，请打开操作系统的系统偏好设置。"
+  "To modify notification settings, open your operating system's system preferences.": "要修改通知设置，请打开操作系统的系统偏好设置。",
+  "Permissions": "权限设置",
+  "No conversations yet": "暂无对话",
+  "Not set": "未设置",
+  "The voice used in Voice mode. Powered by Gemini Live.": "语音模式下使用的音色，由 Gemini Live 提供支持。",
+  "How loud Antigravity's voice is.": "Antigravity 语音播放音量。"
 }
