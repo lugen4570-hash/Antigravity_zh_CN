@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
@@ -221,4 +222,100 @@ test('install.ps1 quotes paths with spaces when spawning background heal', async
   }
   assert.equal(isAsarPatched(asarPath), true);
   fs.rmSync(tmpRoot, { recursive: true, force: true });
+});
+
+test('install.bat and uninstall.bat work end-to-end without pausing', () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-bat-'));
+  const fakeHome = path.join(tmpRoot, 'home');
+  const fakeRes = path.join(tmpRoot, 'res');
+  fs.mkdirSync(path.join(fakeRes, 'bin'), { recursive: true });
+  const asarPath = makeTempAsar(fakeRes);
+  const env = { ...process.env, ANTIGRAVITY_I18N_NO_PAUSE: '1' };
+
+  execFileSync('cmd.exe', [
+    '/c',
+    path.resolve('install.bat'),
+    '-BaseDir', fakeHome,
+    '-AsarPath', asarPath,
+    '-ProcessName', 'NonExistentTestProcessNameXYZ',
+    '-SkipTaskRegister',
+    '-NoWait',
+  ], { encoding: 'utf8', env });
+
+  assert.equal(isAsarPatched(asarPath), true);
+  assert.equal(fs.existsSync(path.join(fakeHome, 'runtime', 'loader.js')), true);
+
+  execFileSync('cmd.exe', [
+    '/c',
+    path.resolve('uninstall.bat'),
+    '-BaseDir', fakeHome,
+    '-AsarPath', asarPath,
+    '-SkipTaskRemove',
+  ], { encoding: 'utf8', env });
+
+  assert.equal(isAsarPatched(asarPath), false);
+  assert.equal(fs.existsSync(fakeHome), false);
+  fs.rmSync(tmpRoot, { recursive: true, force: true });
+});
+
+test('remote-install.ps1 downloads zip archive, installs runtime, and patches app.asar', async () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-remote-'));
+  const pkgRoot = path.join(tmpRoot, 'Antigravity_zh_CN-main');
+  const zipPath = path.join(tmpRoot, 'repo.zip');
+  const fakeHome = path.join(tmpRoot, 'home');
+  const fakeRes = path.join(tmpRoot, 'res');
+  fs.mkdirSync(path.join(fakeRes, 'bin'), { recursive: true });
+  const asarPath = makeTempAsar(fakeRes);
+
+  for (const dir of ['runtime', 'dict', 'patcher', 'scripts']) {
+    fs.cpSync(path.resolve(dir), path.join(pkgRoot, dir), { recursive: true });
+  }
+  fs.copyFileSync(path.resolve('config.default.json'), path.join(pkgRoot, 'config.default.json'));
+
+  execFileSync('powershell.exe', [
+    '-NoProfile',
+    '-ExecutionPolicy', 'Bypass',
+    '-Command',
+    `Compress-Archive -Path '${pkgRoot}' -DestinationPath '${zipPath}' -Force`,
+  ], { encoding: 'utf8' });
+
+  const zipBytes = fs.readFileSync(zipPath);
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, {
+      'Content-Type': 'application/zip',
+      'Content-Length': String(zipBytes.length),
+    });
+    res.end(zipBytes);
+  });
+
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address();
+
+  try {
+    await new Promise((resolve, reject) => {
+      const child = spawn('powershell.exe', [
+        '-NoProfile',
+        '-ExecutionPolicy', 'Bypass',
+        '-File', path.resolve('scripts/remote-install.ps1'),
+        '-ArchiveUrl', `http://127.0.0.1:${port}/repo.zip`,
+        '-BaseDir', fakeHome,
+        '-AsarPath', asarPath,
+        '-ProcessName', 'NonExistentTestProcessNameXYZ',
+        '-SkipTaskRegister',
+        '-NoWait',
+      ], { stdio: 'pipe' });
+      let stderr = '';
+      child.stderr.on('data', (chunk) => { stderr += String(chunk); });
+      child.on('exit', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`remote-install.ps1 exited ${code}: ${stderr}`));
+      });
+    });
+
+    assert.equal(isAsarPatched(asarPath), true);
+    assert.equal(fs.existsSync(path.join(fakeHome, 'dict', 'zh-CN.json')), true);
+  } finally {
+    server.close();
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
 });
