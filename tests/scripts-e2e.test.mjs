@@ -216,12 +216,14 @@ test('install.ps1 quotes paths with spaces when spawning background heal', async
     '-SkipTaskRegister',
   ]);
 
+  const pendingFile = path.join(fakeHome, 'logs', 'new-strings-pending.json');
   const deadline = Date.now() + 30000;
-  while (Date.now() < deadline && !isAsarPatched(asarPath)) {
+  while (Date.now() < deadline && (!isAsarPatched(asarPath) || !fs.existsSync(pendingFile))) {
     await new Promise((r) => setTimeout(r, 250));
   }
   assert.equal(isAsarPatched(asarPath), true);
-  fs.rmSync(tmpRoot, { recursive: true, force: true });
+  await new Promise((r) => setTimeout(r, 300));
+  fs.rmSync(tmpRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
 });
 
 test('install.bat and uninstall.bat work end-to-end without pausing', () => {
