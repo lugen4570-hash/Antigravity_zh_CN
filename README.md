@@ -1,7 +1,7 @@
 # Google Antigravity 简体中文跨版本自动汉化包 (`Antigravity_zh_CN`)
 
-[![GitHub release](https://img.shields.io/github/v/release/JUN-Genyan/Antigravity_zh_CN?color=blue&label=Release)](https://github.com/JUN-Genyan/Antigravity_zh_CN/releases)
-[![Stars](https://img.shields.io/github/stars/JUN-Genyan/Antigravity_zh_CN?style=flat)](https://github.com/JUN-Genyan/Antigravity_zh_CN/stargazers)
+[![GitHub release](https://img.shields.io/github/v/release/lugen4570-hash/Antigravity_zh_CN?color=blue&label=Release)](https://github.com/lugen4570-hash/Antigravity_zh_CN/releases)
+[![Stars](https://img.shields.io/github/stars/lugen4570-hash/Antigravity_zh_CN?style=flat)](https://github.com/lugen4570-hash/Antigravity_zh_CN/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6)
 ![Tested](https://img.shields.io/badge/Antigravity-v2.31.2%20~%20v2.32.2-brightgreen)
@@ -48,24 +48,24 @@
 在 PowerShell 中运行：
 
 ```powershell
-irm https://raw.githubusercontent.com/JUN-Genyan/Antigravity_zh_CN/main/scripts/remote-install.ps1 | iex
+irm https://raw.githubusercontent.com/lugen4570-hash/Antigravity_zh_CN/main/scripts/remote-install.ps1 | iex
 ```
 
 ### 方式二：下载压缩包双击安装
 
-1. 前往 [Releases 页面](https://github.com/JUN-Genyan/Antigravity_zh_CN/releases) 下载最新打包压缩包（或点击页面右上角 `Code` → `Download ZIP`）。
+1. 前往 [Releases 页面](https://github.com/lugen4570-hash/Antigravity_zh_CN/releases) 下载最新打包压缩包（或点击页面右上角 `Code` → `Download ZIP`）。
 2. 解压到任意文件夹，双击运行根目录下的 **`install.bat`**。
 
 ### 方式三：直接让 Antigravity 自己帮你装
 
 把下面这段话直接发给正在运行的 Antigravity 对话框，让它自动拉取并完成安装：
 
-> 请帮我克隆 `https://github.com/JUN-Genyan/Antigravity_zh_CN.git` 并运行其中的 `scripts\install.ps1` 完成 Antigravity 简体中文汉化部署。
+> 请帮我克隆 `https://github.com/lugen4570-hash/Antigravity_zh_CN.git` 并运行其中的 `scripts\install.ps1` 完成 Antigravity 简体中文汉化部署。
 
 ### 方式四：Git 克隆安装（方便自己修改词典）
 
 ```powershell
-git clone https://github.com/JUN-Genyan/Antigravity_zh_CN.git
+git clone https://github.com/lugen4570-hash/Antigravity_zh_CN.git
 cd Antigravity_zh_CN
 powershell -NoProfile -ExecutionPolicy Bypass -File ".\scripts\install.ps1"
 ```
@@ -105,7 +105,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ".\scripts\install.ps1"
 - **运行时收集的未收录界面短词**：`%USERPROFILE%\.antigravity-i18n\logs\missing-strings.json`
 - **运行日志**：`%USERPROFILE%\.antigravity-i18n\logs\i18n.log`
 
-欢迎将新版本未覆盖的英文界面截图或词条提交 [Issue](https://github.com/JUN-Genyan/Antigravity_zh_CN/issues) 或 Pull Request！
+欢迎将新版本未覆盖的英文界面截图或词条提交 [Issue](https://github.com/lugen4570-hash/Antigravity_zh_CN/issues) 或 Pull Request！
 
 ---
 

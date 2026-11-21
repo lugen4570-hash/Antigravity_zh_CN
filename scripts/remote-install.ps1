@@ -1,5 +1,5 @@
 param(
-  [string]$ArchiveUrl = "https://github.com/JUN-Genyan/Antigravity_zh_CN/archive/refs/heads/main.zip",
+  [string]$ArchiveUrl = "https://github.com/lugen4570-hash/Antigravity_zh_CN/archive/refs/heads/main.zip",
   [string]$BaseDir = (Join-Path $env:USERPROFILE ".antigravity-i18n"),
   [string]$AsarPath = (Join-Path $env:LOCALAPPDATA "Programs\antigravity\resources\app.asar"),
   [string]$ProcessName = "Antigravity",
