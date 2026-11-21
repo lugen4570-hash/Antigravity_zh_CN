@@ -3,7 +3,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
-import { extractAllUiStrings } from './extract-ui-strings.mjs';
+import {
+  extractAllUiStrings,
+  resolveDefaultResourceBase,
+  resolveLanguageServerPath,
+} from './extract-ui-strings.mjs';
 
 const require = createRequire(import.meta.url);
 const { createTranslator } = require('../runtime/translator.js');
@@ -33,9 +37,9 @@ export function scanNewStrings({ candidates, exactMap = {}, patterns = [], outpu
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const baseDir = process.argv[2] || path.join(os.homedir(), '.antigravity-i18n');
-  const resBase = process.argv[3] || path.join(process.env.LOCALAPPDATA || '', 'Programs', 'antigravity', 'resources');
+  const resBase = process.argv[3] || resolveDefaultResourceBase();
   const asarPath = path.join(resBase, 'app.asar');
-  const lsPath = path.join(resBase, 'bin', 'language_server.exe');
+  const lsPath = resolveLanguageServerPath(resBase);
 
   let exactMap = {};
   let patterns = [];

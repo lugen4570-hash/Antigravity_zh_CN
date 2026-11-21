@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { pathToFileURL } from 'node:url';
@@ -108,10 +109,37 @@ export function extractAllUiStrings(asarPath, lsPath) {
   };
 }
 
+export function resolveLanguageServerPath(resBase) {
+  const binDir = path.join(resBase, 'bin');
+  const candidates = process.platform === 'win32'
+    ? ['language_server.exe']
+    : ['language_server', 'language_server_macos_arm64', 'language_server_macos_x64'];
+  for (const name of candidates) {
+    const candidate = path.join(binDir, name);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  if (fs.existsSync(binDir)) {
+    const match = fs.readdirSync(binDir).find((entry) => entry.startsWith('language_server'));
+    if (match) return path.join(binDir, match);
+  }
+  return path.join(binDir, process.platform === 'win32' ? 'language_server.exe' : 'language_server');
+}
+
+export function resolveDefaultResourceBase() {
+  if (process.platform === 'darwin') {
+    const candidates = [
+      '/Applications/Antigravity.app/Contents/Resources',
+      path.join(os.homedir(), 'Applications', 'Antigravity.app', 'Contents', 'Resources'),
+    ];
+    return candidates.find((p) => fs.existsSync(path.join(p, 'app.asar'))) || candidates[0];
+  }
+  return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'antigravity', 'resources');
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
-  const base = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'antigravity', 'resources');
+  const base = resolveDefaultResourceBase();
   const asarPath = process.argv[2] || path.join(base, 'app.asar');
-  const lsPath = process.argv[3] || path.join(base, 'bin', 'language_server.exe');
+  const lsPath = process.argv[3] || resolveLanguageServerPath(base);
   const out = extractAllUiStrings(asarPath, lsPath);
   console.log(JSON.stringify(out, null, 2));
 }

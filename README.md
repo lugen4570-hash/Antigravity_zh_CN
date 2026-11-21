@@ -3,10 +3,10 @@
 [![GitHub release](https://img.shields.io/github/v/release/lugen4570-hash/Antigravity_zh_CN?color=blue&label=Release)](https://github.com/lugen4570-hash/Antigravity_zh_CN/releases)
 [![Stars](https://img.shields.io/github/stars/lugen4570-hash/Antigravity_zh_CN?style=flat)](https://github.com/lugen4570-hash/Antigravity_zh_CN/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-![Platform](https://img.shields.io/badge/Platform-Windows-0078D6)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20(Experimental)-0078D6)
 ![Tested](https://img.shields.io/badge/Antigravity-v2.31.2%20~%20v2.32.2-brightgreen)
 
-专为 Windows 版 **Google Antigravity（反重力）桌面端** 打造的跨版本简体中文语言包：**点桌面原版图标即可生效、应用内更新不失效、严格隔离代码区与对话正文、支持一键完整还原**。
+专为 **Google Antigravity（反重力）桌面端** 打造的跨版本简体中文语言包（正式支持 Windows，已新增 macOS 实验性适配）：**点桌面原版图标即可生效、更新自动延续或自愈、严格隔离代码区与对话正文、支持一键完整还原**。
 
 ---
 
@@ -26,18 +26,18 @@
 | --- | --- |
 | **原生启动即汉化** | 轻量注入主进程与渲染层，直接从开始菜单/桌面原版图标启动即可生效，无需改用第三方启动器 |
 | **跨版本更新不失效** | 拦截应用内“重启更新”流程，在官方安装包替换新版 `app.asar` 后自动重新注入汉化并拉起新版；实测已稳定跨越 `v2.31.2 → v2.32.1 → v2.32.2` |
-| **后台温和自愈** | 注册当前用户权限计划任务 `AntigravityI18nSelfHeal`（登录 / 解锁 / 每 30 分钟巡检），遇到覆盖安装会等待退出后再修补，**绝不强杀正在运行的进程** |
+| **后台温和自愈** | Windows 注册计划任务 `AntigravityI18nSelfHeal`，macOS 注册 `LaunchAgent` 巡检；遇到覆盖安装会等待退出后再修补，**绝不强杀正在运行的进程** |
 | **精确防误翻隔离** | 仅翻译原生菜单、托盘、设置面板、模型配额、斜杠命令菜单、弹窗权限确认等 UI 元素；自动跳过代码块、终端、输入框与 AI 对话正文 |
-| **内置丰富词库** | 收录 **1,110 条精确词条** 与 **63 条动态正则模板**（配额倒计时、权限/状态动态文案等），支持自动收集未汉化短语 |
-| **一键无残留卸载** | 自动备份原版 `app.asar`，运行卸载脚本即可恢复原状并清理计划任务与运行时文件 |
+| **内置丰富词库** | 收录 **1,125 条精确词条** 与 **63 条动态正则模板**（配额倒计时、权限/状态动态文案、macOS 应用菜单等），支持自动收集未汉化短语 |
+| **一键无残留卸载** | 自动备份原版 `app.asar`（macOS 同步备份 `Info.plist`），运行卸载脚本即可恢复原状并清理计划任务与运行时文件 |
 
 ---
 
 ## 环境要求
 
-- Windows 10 / 11
-- 已安装 [Google Antigravity Desktop](https://antigravity.google/)（默认路径：`%LOCALAPPDATA%\Programs\antigravity\resources\app.asar`）
-- 已安装 [Node.js](https://nodejs.org/)（建议 18+ LTS，用于本地无损读写 Electron `app.asar`）
+- **Windows 10 / 11**：已安装 [Google Antigravity Desktop](https://antigravity.google/)（默认路径：`%LOCALAPPDATA%\Programs\antigravity\resources\app.asar`）
+- **macOS（实验性适配）**：已安装 `/Applications/Antigravity.app`（或 `~/Applications/Antigravity.app`）
+- **通用依赖**：[Node.js](https://nodejs.org/)（建议 18+ LTS，macOS 可通过 `brew install node` 安装）
 
 ---
 
@@ -73,6 +73,31 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ".\scripts\install.ps1"
 > **生效提示**：
 > - 若安装时 Antigravity 未运行，补丁会立刻写入，直接打开即可看到中文界面。
 > - 若安装时 Antigravity 正在运行，后台会在收到通知后静默等待你**手动退出 Antigravity，等待 3～5 秒再重新打开**即可生效（不会强行关闭你当前的窗口）。
+
+---
+
+## macOS 安装与说明（实验性适配）
+
+> 已通过 Git Bash 下的 macOS 脚本生命周期、`Info.plist` ASAR 完整性校验更新及 Electron 路径/更新钩子测试；尚未在真机 Mac 上完整实机验证，欢迎 Mac 用户反馈问题。
+
+### 一行命令安装（Terminal）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lugen4570-hash/Antigravity_zh_CN/main/scripts/macos/remote-install.sh | bash
+```
+
+### 或克隆仓库本地安装
+
+```bash
+git clone https://github.com/lugen4570-hash/Antigravity_zh_CN.git
+cd Antigravity_zh_CN
+bash ./scripts/macos/install.sh
+```
+
+- 脚本会将运行时与词典部署到 `~/.antigravity-i18n/`，注册 `~/Library/LaunchAgents/com.antigravity.i18n.selfheal.plist` 后台巡检任务。
+- 修改 `Contents/Resources/app.asar` 后会自动备份并同步更新 `Contents/Info.plist` 中的 `ElectronAsarIntegrity` 哈希，并执行临时重签（`codesign --force --deep --sign -`）以兼容 Apple Silicon。
+- 注意：重签后首次打开可能会提示一次钥匙串访问授权，且 macOS 原生 Squirrel 更新若要求原始开发者签名，请在手动拖拽新版 `.app` 覆盖后直接启动或等待 `LaunchAgent` 自动补回汉化。
+- 若 `/Applications/Antigravity.app` 属于系统管理员权限，可对安装命令加 `sudo`（建议传入 `--base-dir "$HOME/.antigravity-i18n"`）。
 
 ---
 
@@ -121,6 +146,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%USERPROFILE%\.antigravity-
 ```
 
 卸载会还原原版 `dist/main.js`、移除注入脚本，并注销计划任务与 `%USERPROFILE%\.antigravity-i18n` 目录。
+
+macOS 请先彻底退出 Antigravity（`Cmd+Q`），然后执行：
+
+```bash
+bash "$HOME/.antigravity-i18n/scripts/macos/uninstall.sh" --remove-data
+```
 
 ---
 

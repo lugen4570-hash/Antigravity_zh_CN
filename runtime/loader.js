@@ -91,6 +91,21 @@ function getBuildInjectionScript(customBuilder) {
   return null;
 }
 
+function resolveDefaultAsarPath({
+  platform = process.platform,
+  execPath = process.execPath,
+  resourcesPath = process.resourcesPath,
+} = {}) {
+  const pathLib = platform === 'win32' ? path.win32 : path.posix;
+  if (typeof resourcesPath === 'string' && resourcesPath) {
+    return pathLib.join(resourcesPath, 'app.asar');
+  }
+  if (platform === 'darwin') {
+    return pathLib.resolve(pathLib.dirname(execPath), '..', 'Resources', 'app.asar');
+  }
+  return pathLib.join(pathLib.dirname(execPath), 'resources', 'app.asar');
+}
+
 function createMainLoader(electron, options = {}) {
   const baseDir = options.baseDir || path.join(os.homedir(), '.antigravity-i18n');
   const config = options.config || loadConfig(baseDir);
@@ -107,9 +122,7 @@ function createMainLoader(electron, options = {}) {
 
   installMenuHooks(electron, translator);
 
-  const asarPath =
-    options.asarPath ||
-    path.join(path.dirname(process.execPath), 'resources', 'app.asar');
+  const asarPath = options.asarPath || resolveDefaultAsarPath();
   installUpdaterHooks({
     baseDir,
     asarPath,
@@ -189,3 +202,4 @@ function init(electron) {
 
 module.exports = init;
 module.exports.createMainLoader = createMainLoader;
+module.exports.resolveDefaultAsarPath = resolveDefaultAsarPath;

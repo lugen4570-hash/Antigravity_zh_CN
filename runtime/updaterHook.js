@@ -38,12 +38,88 @@ function appendHookLog(baseDir, message) {
   }
 }
 
+function buildRepatchSpawnSpec({
+  platform = process.platform,
+  baseDir,
+  pid,
+  asarPath,
+  exePath,
+  oldHash,
+  shouldRelaunch,
+}) {
+  if (platform === 'darwin') {
+    const scriptPath = path.posix.join(String(baseDir).replace(/\\/g, '/'), 'scripts', 'macos', 'repatch-after-update.sh');
+    return {
+      scriptPath,
+      command: '/bin/bash',
+      args: [
+        scriptPath,
+        '--old-pid',
+        String(pid),
+        '--asar-path',
+        asarPath,
+        '--exe-path',
+        exePath,
+        '--old-hash',
+        oldHash || 'unknown',
+        '--relaunch',
+        shouldRelaunch ? '1' : '0',
+      ],
+      spawnOptions: {
+        detached: true,
+        stdio: 'ignore',
+      },
+    };
+  }
+
+  if (platform === 'win32') {
+    const scriptPath = path.join(baseDir, 'scripts', 'repatch-after-update.ps1');
+    const psExe = process.env.SystemRoot
+      ? path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+      : 'powershell.exe';
+    return {
+      scriptPath,
+      command: process.env.ComSpec || 'cmd.exe',
+      args: [
+        '/d',
+        '/c',
+        psExe,
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-WindowStyle',
+        'Hidden',
+        '-File',
+        scriptPath,
+        '-OldPid',
+        String(pid),
+        '-AsarPath',
+        asarPath,
+        '-ExePath',
+        exePath,
+        '-OldHash',
+        oldHash || 'unknown',
+        '-Relaunch',
+        shouldRelaunch ? '1' : '0',
+      ],
+      spawnOptions: {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true,
+      },
+    };
+  }
+
+  return null;
+}
+
 function patchBaseUpdaterClass(BaseUpdater, options) {
   if (!BaseUpdater || !BaseUpdater.prototype || BaseUpdater.prototype.__agyUpdaterHooked) return false;
   BaseUpdater.prototype.__agyUpdaterHooked = true;
 
   const origInstall = BaseUpdater.prototype.install;
   const spawnFn = options.spawnFn || spawn;
+  const platform = options.platform || process.platform;
   const baseDir = options.baseDir;
   const asarPath = options.asarPath;
   const exePath = options.exePath || process.execPath;
@@ -52,43 +128,22 @@ function patchBaseUpdaterClass(BaseUpdater, options) {
   BaseUpdater.prototype.install = function wrappedInstall(isSilent = false, isForceRunAfter = false) {
     const shouldRelaunch = Boolean(isForceRunAfter || !isSilent);
 
-    if (!this.__agyBridgeSpawned && process.platform === 'win32') {
-      const scriptPath = path.join(baseDir, 'scripts', 'repatch-after-update.ps1');
-      if (fs.existsSync(scriptPath) || options.spawnFn) {
+    if (!this.__agyBridgeSpawned && (platform === 'win32' || platform === 'darwin')) {
+      const oldHash = sha256File(asarPath);
+      const spec = buildRepatchSpawnSpec({
+        platform,
+        baseDir,
+        pid: process.pid,
+        asarPath,
+        exePath,
+        oldHash,
+        shouldRelaunch,
+      });
+      if (spec && (fs.existsSync(spec.scriptPath) || options.spawnFn)) {
         this.__agyBridgeSpawned = true;
-        const oldHash = sha256File(asarPath);
-        const psExe = process.env.SystemRoot
-          ? path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
-          : 'powershell.exe';
-        const args = [
-          '/d',
-          '/c',
-          psExe,
-          '-NoProfile',
-          '-ExecutionPolicy',
-          'Bypass',
-          '-WindowStyle',
-          'Hidden',
-          '-File',
-          scriptPath,
-          '-OldPid',
-          String(process.pid),
-          '-AsarPath',
-          asarPath,
-          '-ExePath',
-          exePath,
-          '-OldHash',
-          oldHash || 'unknown',
-          '-Relaunch',
-          shouldRelaunch ? '1' : '0',
-        ];
         try {
-          appendHookLog(baseDir, `Updater hook triggered (Pid=${process.pid}, Relaunch=${shouldRelaunch ? 1 : 0}).`);
-          const child = spawnFn(process.env.ComSpec || 'cmd.exe', args, {
-            detached: true,
-            stdio: 'ignore',
-            windowsHide: true,
-          });
+          appendHookLog(baseDir, `Updater hook triggered (Platform=${platform}, Pid=${process.pid}, Relaunch=${shouldRelaunch ? 1 : 0}).`);
+          const child = spawnFn(spec.command, spec.args, spec.spawnOptions);
           if (child && typeof child.on === 'function') {
             child.on('error', (err) => {
               appendHookLog(baseDir, `Repatch bridge spawn error: ${err && err.message ? err.message : err}`);
@@ -104,7 +159,7 @@ function patchBaseUpdaterClass(BaseUpdater, options) {
       }
     }
 
-    // Force silent NSIS install without auto-launching so repatch-after-update.ps1 patches app.asar first
+    // Force silent install without auto-launching so repatch bridge patches app.asar first
     return origInstall.call(this, true, false);
   };
 
